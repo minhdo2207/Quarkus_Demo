@@ -1,0 +1,35 @@
+version: "3.8"
+
+services:
+  database:
+    container_name: database
+    image: postgres:13.3
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=sample_database
+      - POSTGRES_USERNAME=postgres
+    ports:
+      - 5432:5432
+    networks:
+      - network
+
+  quarkus_backend:
+    container_name: quarkus_backend
+    image: backend/quarkus-jvm:1.0
+    build:
+      dockerfile: ./src/main/docker/Dockerfile.jvm
+    ports:
+      - 8080:8080
+    networks:
+      - network
+    depends_on:
+      - database
+    environment:
+      - DB_ECHO_VALUES=true
+      - PORT=8080
+      - POSTGRES_REACTIVE_URL=postgres://postgres:postgres@database:5432/sample_database
+
+
+networks:
+  network:
+    driver: bridge

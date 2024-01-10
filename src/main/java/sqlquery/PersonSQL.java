@@ -18,6 +18,7 @@ public class PersonSQL {
                                                 "             'person' || i || '@example.com');\n" +
                                                 "    END LOOP;\n" +
                                                 "END $$;";
+    public static String CREATE_INDEX_PERSON_DATABASE = " CREATE INDEX idx_persons_name ON persons (name); ";
     public static String FIND_ALL_PERSON = " SELECT id, name, age, email FROM persons ORDER BY id, name DESC ";
     public static String FIND_PERSON_BY_ID = " SELECT id, name, age, email FROM persons WHERE id = $1 ";
 

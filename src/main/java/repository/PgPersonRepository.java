@@ -1,11 +1,9 @@
 package repository;
 
+import dto.request.PagingRequest;
 import entity.Person;
 import entity.common.QuerySearchResult;
-import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
-import io.smallrye.mutiny.converters.multi.MultiReactorConverters;
-import io.smallrye.mutiny.converters.uni.UniReactorConverters;
 import io.vertx.mutiny.sqlclient.Row;
 import io.vertx.mutiny.sqlclient.RowSet;
 import io.vertx.mutiny.sqlclient.SqlConnection;
@@ -13,15 +11,12 @@ import io.vertx.mutiny.sqlclient.Tuple;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.ObjectUtils;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import sqlquery.PersonSQL;
-import utils.TableNames;
+import utils.*;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
+
 
 @ApplicationScoped
 @Slf4j
@@ -30,71 +25,34 @@ public class PgPersonRepository implements PersonRepository {
     io.vertx.mutiny.pgclient.PgPool client;
 
     @Override
-    public Mono<QuerySearchResult<Person>> findAll(SqlConnection conn, int page, int pageSize, String keyword, Long status, String sortField, String sortBy) {
-//        return (conn == null ? client.withConnection(this::findAllWithConnection) : findAllWithConnection(conn))
-//                .onItem().transformToMulti(set -> Multi.createFrom().iterable(set))
-//                .onItem().transform(Person::from);
+    public Mono<QuerySearchResult<Person>> findAll(SqlConnection conn, PagingRequest pagingRequest) {
+        //Get query
+        QueryBuildResult queryBuildResult = buildSelectQuery(TableNames.PERSON, pagingRequest);
+        return PagingSortSearchUtil.findAll(client, conn, Person::from, queryBuildResult);
+    }
 
-        log.debug("search page={}, pageSize={},sortField={},sortBy={}, keyword={}, tenantId={}",
-                page, pageSize, sortField, sortBy, keyword, status);
+    private QueryBuildResult buildSelectQuery(String tableName, PagingRequest pagingRequest) {
+        //Intitialize
+        int page = pagingRequest.getPage();
+        int pageSize = pagingRequest.getPagesize();
+        String keyword = pagingRequest.getKeyword();
+        Long status = pagingRequest.getStatus();
+        String sortField = pagingRequest.getSortField();
+        String sortBy = pagingRequest.getSortBy();
         int offset = pageSize * page - pageSize;
-        List<Object> params = new ArrayList<>();
-
-        String selectQuery = String.format("SELECT * FROM %s WHERE 1 = 1 ", TableNames.PERSON);
-        String countQuery = String.format("SELECT count(*) as count FROM %s WHERE 1 = 1 ", TableNames.PERSON);
-
-        if (ObjectUtils.isNotEmpty(keyword)) {
-            String condition = " AND name LIKE CONCAT('%',$$,'%') ";
-            params.add(keyword.trim());
-            String paramQuery = "$" + (params.size());
-            condition = condition.replace("$$", paramQuery);
-            selectQuery = selectQuery + condition;
-            countQuery = countQuery + condition;
-        }
-
-        if (ObjectUtils.isNotEmpty(status)) {
-            if (status > 0) {
-                String condition = " AND id = $$ ";
-                params.add(status);
-                String paramQuery = "$" + (params.size());
-                condition = condition.replace("$$", paramQuery);
-                selectQuery = selectQuery + condition;
-                countQuery = countQuery + condition;
-            }
-        }
-
-        selectQuery = selectQuery + String.format(" ORDER BY %s %s LIMIT %s OFFSET %s ", sortField, sortBy, pageSize, offset);
-
-        String finalCountQuery = countQuery;
-
-        log.debug("Select query: {}", selectQuery);
-
-        Function<SqlConnection, Uni<RowSet<Row>>> functionCount = sqlConn -> sqlConn.preparedQuery(finalCountQuery)
-                .execute(Tuple.tuple(params));
-        Uni<RowSet<Row>> count = (conn == null ? client.withConnection(functionCount) : functionCount.apply(conn));
-
-        Uni<Integer> totalUni = count.onItem()
-                .transform(pgRowSet -> pgRowSet.iterator().next().getInteger("count"));
-
-        String finalSelectQuery = selectQuery;
-        log.debug("Query Select: {}", finalSelectQuery);
-
-        Function<SqlConnection, Uni<RowSet<Row>>> functionSelect = sqlConn -> sqlConn.preparedQuery(finalSelectQuery)
-                .execute(Tuple.tuple(params));
-        Multi<Person> itemsUni = (conn == null ? client.withConnection(functionSelect)
-                : functionSelect.apply(conn))
-                .onItem().transformToMulti(set -> Multi.createFrom().iterable(set))
-                .onItem().transform(row -> Person.from(row));
-
-        Mono<Integer> mono = totalUni.convert().with(UniReactorConverters.toMono());
-        Flux<Person> flux = itemsUni.convert().with(MultiReactorConverters.toFlux());
-
-        return Mono.zip(mono, flux.collectList(), (total, icc) -> {
-            QuerySearchResult<Person> qsr = new QuerySearchResult<>(total, icc);
-            qsr.setCount(total);
-            qsr.setItems(icc);
-            return qsr;
-        });
+        log.debug("search page={}, pageSize={},sortField={},sortBy={}, keyword={}, tenantId={},offset={}",
+                page, pageSize, sortField, sortBy, keyword, status, offset);
+        //Create Query
+        SelectQueryBuilder queryBuilder = new SelectQueryBuilder();
+        String selectQuery = queryBuilder.selectAll().from(tableName).where()
+                .searchEqual(PersonAttribute.ID.value(), status).and().searchLike(PersonAttribute.NAME.value(), keyword)
+                .orderBy(sortField, sortBy).limit(pageSize).offset(offset).getSelectQuery();
+        SelectQueryBuilder countQueryBuilder = new SelectQueryBuilder();
+        String countQuery = countQueryBuilder.selectCount().from(tableName).where()
+                .searchEqual(PersonAttribute.ID.value(), status).and().searchLike(PersonAttribute.NAME.value(), keyword).getSelectQuery();
+        //Get param
+        List<Object> params = queryBuilder.getParams();
+        return new QueryBuildResult(selectQuery, countQuery, params);
     }
 
     @Override

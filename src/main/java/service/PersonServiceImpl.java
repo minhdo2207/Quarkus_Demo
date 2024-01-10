@@ -1,5 +1,6 @@
 package service;
 
+import dto.request.PagingRequest;
 import entity.Person;
 import entity.common.QuerySearchResult;
 import io.smallrye.mutiny.Uni;
@@ -17,8 +18,8 @@ public class PersonServiceImpl implements PersonService {
     PersonRepository personRepository;
 
     @Override
-    public Mono<QuerySearchResult<Person>> findAll(int page, int pageSize, String keyword, Long status, String sortField, String sortBy) {
-        return personRepository.findAll(null, page, pageSize, keyword, status, sortField, sortBy);
+    public Mono<QuerySearchResult<Person>> findAll(PagingRequest pagingRequest) {
+        return personRepository.findAll(null, pagingRequest);
     }
 
     @Override

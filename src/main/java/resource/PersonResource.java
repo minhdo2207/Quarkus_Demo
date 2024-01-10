@@ -1,5 +1,6 @@
 package resource;
 
+import dto.request.PagingRequest;
 import entity.Person;
 import entity.common.QuerySearchResult;
 import io.smallrye.mutiny.Uni;
@@ -34,7 +35,8 @@ public class PersonResource {
                                                  @QueryParam(value = "status") @DefaultValue("-1") Long status,
                                                  @QueryParam(value = "sort_field") @DefaultValue("id") String sortField,
                                                  @QueryParam(value = "sort_by") @DefaultValue("DESC") String sortBy) {
-        return Uni.createFrom().converter(UniReactorConverters.fromMono(), personService.findAll(page, pageSize, keyword, status, sortField, sortBy));
+        PagingRequest pagingRequest = new PagingRequest(page, pageSize, keyword, status, sortField, sortBy);
+        return Uni.createFrom().converter(UniReactorConverters.fromMono(), personService.findAll(pagingRequest));
     }
 
     @GET

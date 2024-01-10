@@ -3,8 +3,11 @@ package sqlquery;
 import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
+import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import utils.ErrrorMessage;
 
+@Slf4j
 public class PersonMigration {
     @Inject
     io.vertx.mutiny.pgclient.PgPool personClient;
@@ -26,11 +29,13 @@ public class PersonMigration {
                         .execute())
                 .flatMap(m -> personClient.query(PersonSQL.INSERT_PERSON_DATA)
                         .execute())
+                .flatMap(m -> personClient.query(PersonSQL.CREATE_INDEX_PERSON_DATABASE)
+                        .execute())
                 .subscribe()
                 .with(
-                        success -> System.out.println("Database initialized successfully."),
+                        success -> log.info(ErrrorMessage.DATABASE_INTITAL_SUCCESS),
                         failure -> {
-                            System.err.println("Failed to initialize the database.");
+                            log.info(ErrrorMessage.DATABASE_INTITAL_FAIL);
                             failure.printStackTrace();
                         });
     }

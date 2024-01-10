@@ -1,12 +1,13 @@
 package service;
 
+import dto.request.PagingRequest;
 import entity.Person;
 import entity.common.QuerySearchResult;
 import io.smallrye.mutiny.Uni;
 import reactor.core.publisher.Mono;
 
 public interface PersonService {
-    Mono<QuerySearchResult<Person>> findAll(int page, int pagesize, String keyword, Long status, String sortField, String sortBy);
+    Mono<QuerySearchResult<Person>> findAll(PagingRequest pagingRequest);
 
     Uni<Person> findById(Long id);
 

@@ -11,3 +11,6 @@ CREATE TABLE persons (
                          age INT,
                          email VARCHAR(50)
 );
+
+-- CREATE INDEX
+CREATE INDEX idx_persons_name ON persons (name);

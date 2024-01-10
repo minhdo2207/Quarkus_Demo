@@ -1,5 +1,6 @@
 package repository;
 
+import dto.request.PagingRequest;
 import entity.Person;
 import entity.common.QuerySearchResult;
 import io.smallrye.mutiny.Multi;
@@ -8,7 +9,7 @@ import io.vertx.mutiny.sqlclient.SqlConnection;
 import reactor.core.publisher.Mono;
 
 public interface PersonRepository {
-    Mono<QuerySearchResult<Person>> findAll(SqlConnection conn, int page, int pageSize, String keyword, Long status, String sortField, String sortBy);
+    Mono<QuerySearchResult<Person>> findAll(SqlConnection conn, PagingRequest pagingRequest);
 
     Uni<Person> findById(SqlConnection conn, Long id);
 

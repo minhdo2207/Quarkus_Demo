@@ -17,7 +17,7 @@ services:
     container_name: quarkus_backend
     image: backend/quarkus-jvm:1.0
     build:
-      dockerfile: ./src/main/docker/Dockerfile.jvm
+      dockerfile: ./src/main/docker/Dockerfile.dev
     ports:
       - 8080:8080
     networks:
@@ -28,6 +28,11 @@ services:
       - DB_ECHO_VALUES=true
       - PORT=8080
       - POSTGRES_REACTIVE_URL=postgres://postgres:postgres@database:5432/sample_database
+      - QUARKUS_LAUNCH_DEVMODE=true
+      - JAVA_ENABLE_DEBUG=true
+    volumes:
+      - ./src:/app/src  # Mount your source code into the container for live reloading
+
 
 
 networks:

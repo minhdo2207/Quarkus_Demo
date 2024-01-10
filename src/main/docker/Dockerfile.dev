@@ -1,0 +1,34 @@
+# Use a base image with OpenJDK 11 and Maven installed
+FROM maven:3.8-openjdk-11 AS builder
+
+# Set the working directory
+WORKDIR /app
+
+# Copy only the POM file to cache dependencies
+COPY ./pom.xml .
+RUN mvn dependency:go-offline
+
+# Copy the rest of the application source code
+COPY . .
+
+# Build the application
+RUN mvn package -Pnative -Dquarkus.native.container-build=true
+
+# Use a smaller base image for the runtime
+FROM registry.access.redhat.com/ubi8/ubi-minimal:8.3
+
+# Set the working directory
+WORKDIR /app
+
+# Copy the built Quarkus application from the builder stage
+COPY --from=builder /app/target/*-runner /app/application
+
+# Expose the Quarkus HTTP port
+EXPOSE 8080
+
+# Set the environment for development mode
+ENV QUARKUS_LAUNCH_DEVMODE=true
+ENV JAVA_OPTIONS="-Dquarkus.http.host=0.0.0.0"
+
+# Start the Quarkus application in dev mode
+CMD ["./application", "-Dquarkus.http.host=0.0.0.0", "-Djava.util.logging.manager=org.jboss.logmanager.LogManager", "-Dquarkus.live-reload.password=123"]

@@ -43,13 +43,13 @@ public class PgPersonRepository implements PersonRepository {
         log.debug("search page={}, pageSize={},sortField={},sortBy={}, keyword={}, tenantId={},offset={}",
                 page, pageSize, sortField, sortBy, keyword, status, offset);
         //Create Query
-        SelectQueryBuilder queryBuilder = new SelectQueryBuilder();
+        QueryBuilder queryBuilder = new QueryBuilder();
         String selectQuery = queryBuilder.selectAll().from(tableName).where()
-                .searchEqual(PersonAttribute.ID.value(), status).and().searchLike(PersonAttribute.NAME.value(), keyword)
-                .orderBy(sortField, sortBy).limit(pageSize).offset(offset).getSelectQuery();
-        SelectQueryBuilder countQueryBuilder = new SelectQueryBuilder();
+                .equal(PersonAttribute.ID.value(), status).and().like(PersonAttribute.NAME.value(), keyword)
+                .orderBy(sortField, sortBy).limit(pageSize).offset(offset).getQuery();
+        QueryBuilder countQueryBuilder = new QueryBuilder();
         String countQuery = countQueryBuilder.selectCount().from(tableName).where()
-                .searchEqual(PersonAttribute.ID.value(), status).and().searchLike(PersonAttribute.NAME.value(), keyword).getSelectQuery();
+                .equal(PersonAttribute.ID.value(), status).and().like(PersonAttribute.NAME.value(), keyword).getQuery();
         //Get param
         List<Object> params = queryBuilder.getParams();
         return new QueryBuildResult(selectQuery, countQuery, params);
